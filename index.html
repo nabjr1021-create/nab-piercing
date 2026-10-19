@@ -45,6 +45,11 @@
             color: var(--red)
         }
 
+        /* responsive image logo */
+        .logo { display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .logo-img { height: clamp(28px, 6vw, 56px); width: auto; display: block; object-fit: contain; }
+        .visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px,1px,1px,1px); white-space: nowrap; }
+
         .tag {
             font-size: 11px;
             letter-spacing: .28em;
@@ -307,7 +312,10 @@
 
 <body>
     <header>
-        <div class="logo">NAB <span>PIERCING</span></div>
+        <div class="logo">
+            <img src="assets/logo.png" alt="NAB Piercing" class="logo-img" />
+            <span class="visually-hidden">NAB PIERCING</span>
+        </div>
         <div class="tag">BOOKING • SWITZERLAND</div>
         <nav><button id="customerTab" class="primary">Prenota</button><button id="adminTab">Area amministratore</button>
         </nav>
@@ -430,155 +438,293 @@
     </main>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        const SUPABASE_URL = "https://fxnoukhmvufxtckxharu.supabase.co"; const SUPABASE_ANON_KEY = "sb_publishable_CQpo7JEo1KQOIRHGAISuZA_1HjpNx78"; const db = window.supabase.createClient(SUPABASE_UR[...]
-        async function loadBase() {const [lr, sr] = await Promise.all([db.from('locations').select('id,slug,name,address,active').eq('active', true).order('name'), db.from('services').select('id,locat[...] 
-        function currentLocationServices() {const l = chosenLocation(); return services.filter(s => l && s.location_id === l.id && s.active)} function renderServices() {const list = currentLocationSer[...] 
-        async function loadSlots() {
-            const loc = chosenLocation(), date = $('date').value;
-            selectedSlot = null;
-            if (!loc || !selectedService || !date) {
-                $('slots').innerHTML = '<span class="sub">Scegli sede, servizio e data.</span>';
-                return;
-            }
-            $('slots').innerHTML = '<span class="sub">Verifico gli orari…</span>';
-            const svc = services.find(s => s.id === selectedService);
-            if (!svc) return;
+      // CONFIG
+      const SUPABASE_URL = "https://fxnoukhmvufxtckxharu.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_CQpo7JEo1KQOIRHGAISuZA_1HjpNx78";
+      const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-            const dow = new Date(date + 'T12:00:00').getDay();
-            let windows = [];
-            let blockedWindows = [];
-            if (loc.slug === 'biasca') {
-                const {data, error} = await db.from('availability_overrides')
-                    .select('start_time,end_time,is_available')
-                    .eq('location_id', loc.id)
-                    .eq('service_date', date)
-                    .order('start_time');
-                if (error) {
-                    $('slots').innerHTML = '<span class="sub">Impossibile leggere la disponibilità manuale.</span>';
-                    return;
-                }
-                windows = (data || []).filter(x => x.is_available)
-                    .map(x => ({start: timeText(x.start_time), end: timeText(x.end_time)}));
-                blockedWindows = (data || []).filter(x => !x.is_available)
-                    .map(x => ({start: timeText(x.start_time), end: timeText(x.end_time)}));
-            } else if (loc.slug === 'bellinzona') {
-                if (dow === 3) windows = [{start: '16:30', end: '18:15'}];
-            } else {
-                const {data, error} = await db.from('weekly_availability')
-                    .select('start_time,end_time,weekday,active')
-                    .eq('location_id', loc.id)
-                    .eq('weekday', dow)
-                    .eq('active', true);
-                if (error) {
-                    $('slots').innerHTML = '<span class="sub">Impossibile leggere gli orari settimanali.</span>';
-                    return;
-                }
-                windows = (data || []).map(x => ({start: timeText(x.start_time), end: timeText(x.end_time)}));
-            }
+      // GLOBAL STATE
+      let locations = [], services = [], session = null;
+      let selectedService = null, selectedSlot = null;
 
-            const br = await db.rpc('get_public_booked_slots', {p_location_id: loc.id, p_date: date});
-            if (br.error) {
-                $('slots').innerHTML = '<span class="sub">Impossibile verificare gli orari già prenotati. Riprova più tardi.</span>';
-                return;
-            }
-            const booked = br.data || [];
-            const durationMinutes = loc.slug === 'bellinzona' ? 15 : Number(svc.duration_minutes);
-            const toMinutes = value => {
-                const [hours, minutes] = value.split(':').map(Number);
-                return hours * 60 + minutes;
-            };
-            const blockedRanges = blockedWindows.map(w => ({start: toMinutes(w.start), end: toMinutes(w.end)}));
-            const slots = [];
-            const now = new Date();
+      // HELPERS
+      const $ = id => document.getElementById(id);
+      function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+      function showMsg(id, text, type='ok'){ const el = $(id); if(!el) return; el.className = 'message ' + (type==='err' ? 'err' : 'ok'); el.textContent = text; }
+      function clearMsg(id){ const el = $(id); if(!el) return; el.className = 'message'; el.textContent = ''; }
+      function fmtDate(iso){ try{ const d = new Date(iso); return d.toLocaleString(); } catch(e){return iso;} }
+      function timeText(t){ if(!t) return t; return t.toString().slice(0,5); }
+      function chosenLocation(){ const sel = $('location'); if(!sel) return null; const id = sel.value ? Number(sel.value) : null; return locations.find(x => x.id === id) || null; }
+      function currentLocationServices(){ const l = chosenLocation(); return services.filter(s => l && (s.location_id === l.id || s.location_id == l.id) && s.active); }
 
-            for (const w of windows) {
-                const start = toMinutes(w.start), end = toMinutes(w.end);
-                for (let t = start; t + durationMinutes <= end; t += 15) {
-                    const hh = String(Math.floor(t / 60)).padStart(2, '0');
-                    const mm = String(t % 60).padStart(2, '0');
-                    const stamp = new Date(`${date}T${hh}:${mm}:00`);
-                    const slotEnd = new Date(stamp.getTime() + durationMinutes * 60000);
-                    if (stamp <= now) continue;
-                    if (blockedRanges.some(block => t < block.end && t + durationMinutes > block.start)) continue;
-                    if (booked.some(b => new Date(b.starts_at) < slotEnd && new Date(b.ends_at) > stamp)) continue;
-                    slots.push({time: `${hh}:${mm}`, iso: stamp.toISOString()});
-                }
-            }
+      // RENDER SERVICES (customer)
+      function renderServices(){
+        const list = $('services');
+        if(!list) return;
+        const arr = currentLocationServices();
+        if(!arr || !arr.length){ list.innerHTML = '<span class="sub">Nessun servizio disponibile per questa sede.</span>'; return; }
+        list.innerHTML = arr.map(s => {
+          const price = s.price != null ? `${s.price} CHF` : '';
+          return `<button class="service" data-id="${s.id}"><div><strong>${escapeHtml(s.name)}</strong><small></small></div><div class="price">${escapeHtml(price)}</div></button>`;
+        }).join('');
+        list.querySelectorAll('button.service').forEach(b => {
+          b.onclick = () => {
+            selectedService = Number(b.dataset.id);
+            list.querySelectorAll('button.service').forEach(x => x.classList.toggle('selected', x === b));
+            loadSlots();
+          };
+        });
+      }
 
-            const unique = [...new Map(slots.map(x => [x.time, x])).values()];
-            if (!unique.length) {
-                $('slots').innerHTML = '<span class="sub">Nessun orario disponibile per questa data. Prova un altro giorno.</span>';
-                return;
-            }
-            $('slots').innerHTML = unique.map(s => `<button class="slot" data-time="${s.time}" data-iso="${s.iso}">${s.time}</button>`).join('');
-            $('slots').querySelectorAll('button').forEach(b => b.onclick = () => {
-                selectedSlot = {time: b.dataset.time, iso: b.dataset.iso};
-                $('slots').querySelectorAll('button').forEach(x => x.classList.toggle('selected', x === b));
-            });
+      // LOAD BASE (locations + services)
+      async function loadBase(){
+        try{
+          const [lr, sr] = await Promise.all([
+            db.from('locations').select('id,slug,name,address,active').eq('active', true).order('name'),
+            db.from('services').select('id,location_id,name,duration_minutes,active,price').eq('active', true)
+          ]);
+          if(lr.error){ showMsg('customerMessage','Errore lettura sedi: '+lr.error.message,'err'); return; }
+          if(sr.error){ showMsg('customerMessage','Errore lettura servizi: '+sr.error.message,'err'); return; }
+          locations = lr.data || [];
+          services = sr.data || [];
+
+          // popola location select
+          const locSel = $('location');
+          if(locSel){
+            locSel.innerHTML = `<option value="">Seleziona sede…</option>` + locations.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
+            locSel.onchange = () => { renderServices(); loadSlots(); };
+          }
+
+          // popola adminService select
+          const adminServiceSel = $('adminService');
+          if(adminServiceSel){
+            adminServiceSel.innerHTML = `<option value="">Seleziona servizio…</option>` + services.map(s => {
+              const locName = (locations.find(l => l.id === s.location_id) || {}).name || '';
+              return `<option value="${s.id}">${escapeHtml(s.name)} — ${escapeHtml(locName)}</option>`;
+            }).join('');
+          }
+
+          // date onchange
+          const dateInput = $('date');
+          if(dateInput) dateInput.onchange = loadSlots;
+
+          renderServices();
+        }catch(err){
+          showMsg('customerMessage','Errore inizializzazione: '+err.message,'err');
         }
-        $('bookBtn').onclick = async () => {clearMsg('customerMessage'); const loc = chosenLocation(), svc = services.find(s => s.id === selectedService), name = $('name').value.trim(), email = $('ema[...]
-        $('loginBtn').onclick = async () => {clearMsg('loginMessage'); const {data, error} = await db.auth.signInWithPassword({email: $('adminEmail').value.trim(), password: $('adminPassword').value})[...]
-        async function loadBookings() {
-            clearMsg('bookingMessage');
-            $('bookingRows').innerHTML = '<tr><td colspan="5">Caricamento…</td></tr>';
-            const {data, error} = await db.from('bookings')
-                .select('id,location_id,service_id,customer_name,customer_email,customer_phone,starts_at,ends_at,status,created_at')
-                .order('starts_at', {ascending: false})
-                .limit(200);
-            if (error) {
-                $('bookingRows').innerHTML = '';
-                showMsg('bookingMessage', 'Errore nel caricamento: ' + error.message, 'err');
-                return false;
-            }
-            const lm = Object.fromEntries(locations.map(x => [x.id, x.name]));
-            const sm = Object.fromEntries(services.map(x => [x.id, x.name]));
-            if (!data?.length) {
-                $('bookingRows').innerHTML = '<tr><td colspan="5">Nessuna prenotazione trovata.</td></tr>';
-                return true;
-            }
-            $('bookingRows').innerHTML = data.map(b => `<tr>
-                <td>${escapeHtml(fmtDate(b.starts_at))}</td>
-                <td>${escapeHtml(b.customer_name)}<br><span class="sub">${escapeHtml(b.customer_phone)}<br>${escapeHtml(b.customer_email)}</span></td>
-                <td>${escapeHtml(lm[b.location_id] || 'Sede')}<br>${escapeHtml(sm[b.service_id] || 'Servizio')}</td>
-                <td><span class="pill">${escapeHtml(b.status)}</span></td>
-                <td>${b.status === 'confirmed' ? `<button type="button" class="cancel-booking" data-booking-id="${escapeHtml(b.id)}">Annulla</button>` : ''}</td>
-            </tr>`).join('');
-            $('bookingRows').querySelectorAll('button.cancel-booking').forEach(button => {
-                button.onclick = () => cancelBooking(button.dataset.bookingId, button);
-            });
-            return true;
-        }
-        async function cancelBooking(bookingId, button) {
-            if (!session) {
-                showMsg('bookingMessage', 'Accedi come amministratore per annullare una prenotazione.', 'err');
-                return;
-            }
-            if (!confirm('Confermi l’annullamento di questa prenotazione?')) return;
+      }
 
-            button.disabled = true;
-            const {data, error} = await db.from('bookings')
-                .update({status: 'cancelled'})
-                .eq('id', bookingId)
-                .eq('status', 'confirmed')
-                .select('id')
-                .maybeSingle();
-            if (error) {
-                button.disabled = false;
-                showMsg('bookingMessage', 'Annullamento non riuscito: ' + error.message, 'err');
-                return;
-            }
-            if (!data) {
-                button.disabled = false;
-                showMsg('bookingMessage', 'Nessuna modifica: prenotazione già aggiornata o operazione non autorizzata dalle policy RLS.', 'err');
-                return;
-            }
-
-            const refreshed = await loadBookings();
-            showMsg('bookingMessage', refreshed
-                ? 'Prenotazione annullata.'
-                : 'Prenotazione annullata, ma non è stato possibile aggiornare l’elenco. Premi “Aggiorna elenco”.', refreshed ? 'ok' : 'err');
+      // LOAD SLOTS (logica ripristinata)
+      async function loadSlots(){
+        const loc = chosenLocation(), date = $('date')?.value;
+        selectedSlot = null;
+        if (!loc || !selectedService || !date) {
+          $('slots').innerHTML = '<span class="sub">Scegli sede, servizio e data.</span>';
+          return;
         }
-        function renderAdminServices() {const arr = [...services].sort((a, b) => {const la = locations.find(x => x.id === a.location_id)?.name || '', lb = locations.find(x => x.id === b.location_id)?.[...]
+        $('slots').innerHTML = '<span class="sub">Verifico gli orari…</span>';
+        const svc = services.find(s => s.id === selectedService);
+        if (!svc) return;
+
+        const dow = new Date(date + 'T12:00:00').getDay();
+        let windows = [];
+        let blockedWindows = [];
+
+        try {
+          if (loc.slug === 'biasca') {
+            const { data, error } = await db.from('availability_overrides')
+              .select('start_time,end_time,is_available')
+              .eq('location_id', loc.id)
+              .eq('service_date', date)
+              .order('start_time');
+            if (error) { $('slots').innerHTML = '<span class="sub">Impossibile leggere la disponibilità manuale.</span>'; return; }
+            windows = (data || []).filter(x => x.is_available).map(x => ({ start: timeText(x.start_time), end: timeText(x.end_time) }));
+            blockedWindows = (data || []).filter(x => !x.is_available).map(x => ({ start: timeText(x.start_time), end: timeText(x.end_time) }));
+          } else if (loc.slug === 'bellinzona') {
+            if (dow === 3) windows = [{ start: '16:30', end: '18:15' }];
+          } else {
+            const { data, error } = await db.from('weekly_availability')
+              .select('start_time,end_time,weekday,active')
+              .eq('location_id', loc.id)
+              .eq('weekday', dow)
+              .eq('active', true);
+            if (error) { $('slots').innerHTML = '<span class="sub">Impossibile leggere gli orari settimanali.</span>'; return; }
+            windows = (data || []).map(x => ({ start: timeText(x.start_time), end: timeText(x.end_time) }));
+          }
+
+          const br = await db.rpc('get_public_booked_slots', { p_location_id: loc.id, p_date: date });
+          if (br.error) { $('slots').innerHTML = '<span class="sub">Impossibile verificare gli orari già prenotati. Riprova più tardi.</span>'; return; }
+          const booked = br.data || [];
+          const durationMinutes = loc.slug === 'bellinzona' ? 15 : Number(svc.duration_minutes);
+          const toMinutes = value => { const [hours, minutes] = value.split(':').map(Number); return hours * 60 + minutes; };
+          const blockedRanges = blockedWindows.map(w => ({ start: toMinutes(w.start), end: toMinutes(w.end) }));
+          const slots = [];
+          const now = new Date();
+
+          for (const w of windows) {
+            const start = toMinutes(w.start), end = toMinutes(w.end);
+            for (let t = start; t + durationMinutes <= end; t += 15) {
+              const hh = String(Math.floor(t / 60)).padStart(2, '0');
+              const mm = String(t % 60).padStart(2, '0');
+              const stamp = new Date(`${date}T${hh}:${mm}:00`);
+              const slotEnd = new Date(stamp.getTime() + durationMinutes * 60000);
+              if (stamp <= now) continue;
+              if (blockedRanges.some(block => t < block.end && t + durationMinutes > block.start)) continue;
+              if (booked.some(b => new Date(b.starts_at) < slotEnd && new Date(b.ends_at) > stamp)) continue;
+              slots.push({ time: `${hh}:${mm}`, iso: stamp.toISOString() });
+            }
+          }
+
+          const unique = [...new Map(slots.map(x => [x.time, x])).values()];
+          if (!unique.length) {
+            $('slots').innerHTML = '<span class="sub">Nessun orario disponibile per questa data. Prova un altro giorno.</span>';
+            return;
+          }
+          $('slots').innerHTML = unique.map(s => `<button class="slot" data-time="${s.time}" data-iso="${s.iso}">${s.time}</button>`).join('');
+          $('slots').querySelectorAll('button').forEach(b => b.onclick = () => {
+            selectedSlot = { time: b.dataset.time, iso: b.dataset.iso };
+            $('slots').querySelectorAll('button').forEach(x => x.classList.toggle('selected', x === b));
+          });
+        } catch (err) {
+          $('slots').innerHTML = '<span class="sub">Errore nel caricamento orari.</span>';
+          console.error(err);
+        }
+      }
+
+      // CREATE BOOKING
+      $('bookBtn').onclick = async () => {
+        clearMsg('customerMessage');
+        try {
+          const loc = chosenLocation(), svc = services.find(s => s.id === selectedService);
+          const name = $('name').value?.trim(), phone = $('phone').value?.trim(), email = $('email').value?.trim(), date = $('date').value;
+          if (!loc || !svc || !selectedSlot || !name || !phone || !email) { showMsg('customerMessage','Compila tutti i campi richiesti e scegli uno slot.','err'); return; }
+          const duration = loc.slug === 'bellinzona' ? 15 : Number(svc.duration_minutes || 0);
+          const starts_at = selectedSlot.iso;
+          const ends_at = new Date(new Date(starts_at).getTime() + duration*60000).toISOString();
+          $('bookBtn').disabled = true;
+          const payload = { location_id: loc.id, service_id: svc.id, customer_name: name, customer_phone: phone, customer_email: email, starts_at, ends_at, status: 'confirmed' };
+          const res = await db.from('bookings').insert([payload]).select('id,status').maybeSingle();
+          if(res.error){ showMsg('customerMessage','Prenotazione non riuscita: '+res.error.message,'err'); $('bookBtn').disabled = false; return; }
+          if(!res.data){ showMsg('customerMessage','Prenotazione non riuscita (nessun dato restituito).','err'); $('bookBtn').disabled = false; return; }
+          const bookingId = res.data.id;
+          showMsg('customerMessage','Prenotazione confermata. ID: '+String(bookingId),'ok');
+
+          // invoke edge function (condizionale)
+          try {
+            const fn = await db.functions.invoke('send-booking-confirmation', { method: 'POST', body: JSON.stringify({ booking_id: bookingId }) });
+            if(fn?.error){ console.warn('send-booking-confirmation error', fn.error); showMsg('customerMessage','Prenotazione confermata. Invio e-mail non riuscito — contatta l\'amministrazione.','err'); }
+          } catch (efErr){
+            console.warn('Edge function invocation failed', efErr);
+            showMsg('customerMessage','Prenotazione confermata. Non è stato possibile inviare la mail di conferma dal browser.','ok');
+          }
+          $('bookBtn').disabled = false;
+        } catch (err){
+          $('bookBtn').disabled = false;
+          showMsg('customerMessage','Errore: '+err.message,'err');
+        }
+      };
+
+      // UI toggles
+      function showCustomer() {
+        $('customerView').classList.remove('hidden');
+        $('adminView').classList.add('hidden');
+        $('customerTab')?.classList.add('primary'); $('adminTab')?.classList.remove('primary');
+      }
+      function showAdmin() {
+        $('customerView').classList.add('hidden');
+        $('adminView').classList.remove('hidden');
+        $('adminTab')?.classList.add('primary'); $('customerTab')?.classList.remove('primary');
+        if(session) { $('loginCard')?.classList.add('hidden'); $('dashboard')?.classList.remove('hidden'); } else { $('loginCard')?.classList.remove('hidden'); $('dashboard')?.classList.add('hidden'); }
+      }
+      $('customerTab').onclick = (e)=>{ e.preventDefault(); showCustomer(); };
+      $('adminTab').onclick = (e)=>{ e.preventDefault(); showAdmin(); };
+
+      // AUTH state
+      db.auth.onAuthStateChange((event, s) => {
+        session = s;
+        if(session) { $('loginCard')?.classList.add('hidden'); $('dashboard')?.classList.remove('hidden'); loadBookings(); } else { $('loginCard')?.classList.remove('hidden'); $('dashboard')?.classList.add('hidden'); }
+      });
+
+      // LOGIN
+      $('loginBtn').onclick = async () => {
+        clearMsg('loginMessage');
+        const email = $('adminEmail').value?.trim(), password = $('adminPassword').value;
+        if(!email || !password){ showMsg('loginMessage','Inserisci email e password.','err'); return; }
+        const { data, error } = await db.auth.signInWithPassword({ email, password });
+        if(error){ showMsg('loginMessage','Login fallito: '+error.message,'err'); return; }
+        session = data?.session || null;
+        if(session){ $('loginCard')?.classList.add('hidden'); $('dashboard')?.classList.remove('hidden'); await loadBookings(); }
+      };
+
+      // LOGOUT
+      $('logoutBtn')?.addEventListener('click', async () => {
+        await db.auth.signOut();
+        session = null;
+        $('loginCard')?.classList.remove('hidden'); $('dashboard')?.classList.add('hidden');
+      });
+
+      // ADMIN: loadBookings, cancelBooking
+      async function loadBookings(){
+        clearMsg('bookingMessage');
+        $('bookingRows').innerHTML = '<tr><td colspan="5">Caricamento…</td></tr>';
+        if(!session){ $('bookingRows').innerHTML = '<tr><td colspan="5" class="sub">Accedi per visualizzare le prenotazioni.</td></tr>'; return false; }
+        const { data, error } = await db.from('bookings').select('id,location_id,service_id,customer_name,customer_email,customer_phone,starts_at,ends_at,status,created_at').order('starts_at', { ascending: false }).limit(200);
+        if(error){ $('bookingRows').innerHTML=''; showMsg('bookingMessage','Errore nel caricamento: '+error.message,'err'); return false; }
+        const lm = Object.fromEntries(locations.map(x => [x.id, x.name]));
+        const sm = Object.fromEntries(services.map(x => [x.id, x.name]));
+        if(!data?.length){ $('bookingRows').innerHTML = '<tr><td colspan="5">Nessuna prenotazione trovata.</td></tr>'; return true; }
+        $('bookingRows').innerHTML = data.map(b => `<tr>
+          <td>${escapeHtml(fmtDate(b.starts_at))}</td>
+          <td>${escapeHtml(b.customer_name)}<br><span class="sub">${escapeHtml(b.customer_phone)}<br>${escapeHtml(b.customer_email)}</span></td>
+          <td>${escapeHtml(lm[b.location_id] || 'Sede')}<br>${escapeHtml(sm[b.service_id] || 'Servizio')}</td>
+          <td><span class="pill">${escapeHtml(b.status)}</span></td>
+          <td>${b.status === 'confirmed' ? `<button type="button" class="cancel-booking" data-booking-id="${escapeHtml(b.id)}">Annulla</button>` : ''}</td>
+        </tr>`).join('');
+        $('bookingRows').querySelectorAll('button.cancel-booking').forEach(button => { button.onclick = () => cancelBooking(button.dataset.bookingId, button); });
+        return true;
+      }
+
+      async function cancelBooking(bookingId, button){
+        if(!session){ showMsg('bookingMessage','Accedi come amministratore per annullare una prenotazione.', 'err'); return; }
+        if(!confirm('Confermi l’annullamento di questa prenotazione?')) return;
+        button.disabled = true;
+        const { data, error } = await db.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId).eq('status','confirmed').select('id').maybeSingle();
+        if(error){ button.disabled = false; showMsg('bookingMessage','Annullamento non riuscito: '+error.message,'err'); return; }
+        if(!data){ button.disabled = false; showMsg('bookingMessage','Nessuna modifica: prenotazione già aggiornata o operazione non autorizzata dalle policy RLS.', 'err'); return; }
+        const refreshed = await loadBookings();
+        showMsg('bookingMessage', refreshed ? 'Prenotazione annullata.' : 'Prenotazione annullata, ma non è stato possibile aggiornare l’elenco. Premi “Aggiorna elenco”.', refreshed ? 'ok' : 'err');
+      }
+
+      // ADMIN: savePrice + saveOverride
+      $('savePrice')?.addEventListener('click', async () => {
+        clearMsg('priceMessage');
+        const svcId = Number($('adminService').value);
+        const price = Number($('adminPrice').value);
+        if(!svcId || isNaN(price)){ showMsg('priceMessage','Seleziona un servizio e inserisci un prezzo valido.','err'); return; }
+        const { data, error } = await db.from('services').update({ price }).eq('id', svcId).select('id').maybeSingle();
+        if(error){ showMsg('priceMessage','Errore salvataggio: '+error.message,'err'); return; }
+        showMsg('priceMessage','Prezzo aggiornato.','ok');
+        await loadBase();
+      });
+
+      $('saveOverride')?.addEventListener('click', async () => {
+        clearMsg('overrideMessage');
+        const date = $('overrideDate').value;
+        const isAvailable = $('overrideStatus').value === 'true';
+        const start = $('overrideStart').value;
+        const end = $('overrideEnd').value;
+        const note = $('overrideNote').value?.trim();
+        const loc = locations.find(x => x.slug === 'biasca');
+        if(!loc){ showMsg('overrideMessage','Sede Biasca non trovata.','err'); return; }
+        if(!date || !start || !end){ showMsg('overrideMessage','Compila data, inizio e fine.','err'); return; }
+        const payload = { location_id: loc.id, service_date: date, start_time: start + ':00', end_time: end + ':00', is_available: isAvailable, note };
+        const { data, error } = await db.from('availability_overrides').insert([payload]).select('id').maybeSingle();
+        if(error){ showMsg('overrideMessage','Errore salvataggio: '+error.message,'err'); return; }
+        showMsg('overrideMessage','Disponibilità salvata.','ok');
+      });
+
+      // INIT
+      document.addEventListener('DOMContentLoaded', () => { loadBase().catch(e => console.error(e)); showCustomer(); });
     </script>
 </body>
 
