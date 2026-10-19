@@ -449,7 +449,7 @@
 
       // HELPERS
       const $ = id => document.getElementById(id);
-      function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+      function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
       function showMsg(id, text, type='ok'){ const el = $(id); if(!el) return; el.className = 'message ' + (type==='err' ? 'err' : 'ok'); el.textContent = text; }
       function clearMsg(id){ const el = $(id); if(!el) return; el.className = 'message'; el.textContent = ''; }
       function fmtDate(iso){ try{ const d = new Date(iso); return d.toLocaleString(); } catch(e){return iso;} }
@@ -575,7 +575,7 @@
             }
           }
 
-          const unique = [...new Map(slots.map(x => [x.time, x])).values()];
+          const unique = [...new Map(slots.map(x => [x.time, x])).values();
           if (!unique.length) {
             $('slots').innerHTML = '<span class="sub">Nessun orario disponibile per questa data. Prova un altro giorno.</span>';
             return;
@@ -724,7 +724,15 @@
       });
 
       // INIT
-      document.addEventListener('DOMContentLoaded', () => { loadBase().catch(e => console.error(e)); showCustomer(); });
+      document.addEventListener('DOMContentLoaded', () => {
+        loadBase().catch(e => console.error(e));
+        showCustomer();
+        // ensure nav buttons are bound even if previous script execution was interrupted
+        const customerTabEl = $('customerTab');
+        const adminTabEl = $('adminTab');
+        if (customerTabEl) customerTabEl.addEventListener('click', (e) => { e.preventDefault(); showCustomer(); });
+        if (adminTabEl) adminTabEl.addEventListener('click', (e) => { e.preventDefault(); showAdmin(); });
+      });
     </script>
 </body>
 
