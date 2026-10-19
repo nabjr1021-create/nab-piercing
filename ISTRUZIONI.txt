@@ -1,0 +1,24 @@
+NAB PIERCING — VERSIONE DI PROVA
+
+CONTENUTO
+- index.html: prototipo web da provare sul computer o telefono.
+- supabase_public_slots.sql: funzione SQL che mostra solo gli orari occupati, senza dati personali.
+- È un prototipo web, non ancora un'app pubblicata sugli store.
+
+COME PROVARLO
+1. Estrai il file ZIP.
+2. Apri index.html con Chrome, Safari o Edge mentre sei connesso a Internet.
+3. La pagina usa il progetto Supabase e la publishable/anon key già inseriti nel codice.
+4. Prova la sezione Prenota.
+5. Per l'area amministratore usa l'email e la password dell'utente creato in Supabase Authentication.
+
+PRIMA DEL TEST COMPLETO
+Apri Supabase > SQL Editor > New query, copia tutto il contenuto di supabase_public_slots.sql e premi Run. Questa funzione restituisce solo gli orari di inizio/fine delle prenotazioni confermate per sede e data; non restituisce nome, email o telefono.
+
+LIMITI ATTUALI
+- Email/SMS automatiche non configurate.
+- Nessun annullamento o modifica prenotazione dall'interfaccia.
+- Le disponibilità manuali di Biasca si inseriscono dall'area amministratore.
+- Testare bene la logica degli orari prima di usare con clienti reali.
+- Non inserire dati personali reali finché privacy e funzionamento non sono verificati.
+- Non inserire mai la chiave service_role nel browser; qui si usa solo la publishable/anon key.
