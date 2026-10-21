@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Scopri la selezione NAB Piercing di gioielli per piercing in titanio e acciaio chirurgico. Qualità, stile e design.">
+  <meta name="theme-color" content="#090909">
+  <title>Gioielli | NAB Piercing</title>
+  <style>
+    :root {
+      --bg: #090909;
+      --panel: #141414;
+      --gold: #c9a86a;
+      --text: #f6f3ed;
+      --muted: #b7b2a9;
+      --line: #35312a;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+    .wrap { width: min(1120px, 90%); margin: auto; }
+    header {
+      border-bottom: 1px solid var(--line);
+      padding: 18px 0;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 21px;
+      font-weight: 750;
+      letter-spacing: 2px;
+    }
+    .brand img { width: 45px; height: 45px; object-fit: contain; }
+    .navlinks { display: flex; gap: 20px; font-size: 14px; }
+    .navlinks a:hover, .textlink:hover { color: var(--gold); }
+    .hero {
+      padding: 76px 0 68px;
+      text-align: center;
+      background: radial-gradient(ellipse at top, #292116 0%, var(--bg) 68%);
+    }
+    .eyebrow {
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    h1 {
+      font-size: clamp(36px, 7vw, 66px);
+      line-height: 1.08;
+      margin: 18px 0;
+      letter-spacing: -1.5px;
+    }
+    h1 span { color: var(--gold); }
+    .hero p {
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 28px;
+      font-size: 17px;
+    }
+    .button {
+      display: inline-block;
+      padding: 13px 22px;
+      border: 1px solid var(--gold);
+      background: var(--gold);
+      color: #100e0a;
+      font-weight: 750;
+      border-radius: 3px;
+      transition: .2s;
+    }
+    .button:hover { background: transparent; color: var(--gold); }
+    .button.secondary {
+      color: var(--gold);
+      background: transparent;
+    }
+    .button.secondary:hover { background: var(--gold); color: #100e0a; }
+    section { padding: 58px 0; }
+    .section-title { text-align: center; margin-bottom: 30px; }
+    .section-title h2 { font-size: clamp(26px, 4vw, 38px); margin: 8px 0; }
+    .section-title p { color: var(--muted); margin: 0 auto; max-width: 600px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .visual {
+      min-height: 185px;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle, #383026, #191715 62%, #111);
+      color: var(--gold);
+      font-size: 58px;
+    }
+    .card-content { padding: 22px; }
+    .card h3 { margin: 0 0 8px; font-size: 20px; }
+    .card p { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+    .textlink { color: var(--gold); font-weight: 650; font-size: 14px; }
+    .notice {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .feature {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      text-align: center;
+    }
+    .feature .symbol { color: var(--gold); font-size: 27px; }
+    .feature h3 { font-size: 16px; margin: 8px 0; }
+    .feature p { color: var(--muted); font-size: 14px; margin: 0; }
+    .banner {
+      background: linear-gradient(120deg, #211b12, #111);
+      border: 1px solid var(--line);
+      padding: 38px 24px;
+      text-align: center;
+      border-radius: 5px;
+    }
+    .banner h2 { font-size: clamp(25px, 4vw, 36px); margin: 8px 0; }
+    .banner p { color: var(--muted); margin: 0 auto 22px; max-width: 580px; }
+    footer { border-top: 1px solid var(--line); padding: 28px 0; color: var(--muted); font-size: 13px; }
+    .footer-inner { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+    @media (max-width: 700px) {
+      .nav { align-items: flex-start; flex-direction: column; }
+      .navlinks { flex-wrap: wrap; gap: 14px; }
+      .hero { padding: 56px 0; }
+      .grid, .features { grid-template-columns: 1fr; }
+      .visual { min-height: 150px; }
+      section { padding: 42px 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="index.html" aria-label="NAB Piercing home">
+        <img src="assets/logo.svg" alt="NAB Piercing">
+        <span>NAB PIERCING</span>
+      </a>
+      <nav class="navlinks" aria-label="Navigazione principale">
+        <a href="index.html">Prenotazioni</a>
+        <a href="#collezioni">Collezioni</a>
+        <a href="#materiali">Materiali</a>
+        <a href="#contatti">Contatti</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <div class="eyebrow">NAB Piercing · Jewelry</div>
+        <h1>Il tuo stile.<br><span>Il tuo piercing.</span></h1>
+        <p>
+          Scopri la nostra selezione di gioielli per piercing in titanio
+          e acciaio chirurgico. Design essenziale, dettagli ricercati
+          e uno stile che parla di te.
+        </p>
+        <a class="button" href="#collezioni">Scopri le collezioni</a>
+      </div>
+    </section>
+
+    <section id="collezioni">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="eyebrow">La selezione NAB</div>
+          <h2>Trova il tuo gioiello</h2>
+          <p>Esplora le categorie e scegli il design più adatto al tuo stile.</p>
+        </div>
+
+        <div class="grid">
+          <article class="card">
+            <div class="visual" aria-hidden="true">✧</div>
+            <div class="card-content">
+              <h3>Titanio</h3>
+              <p>Una scelta apprezzata per la sua leggerezza e resistenza alla corrosione. Verifica sempre la specifica lega del prodotto.</p>
+              <a class="textlink" href="#contatti">Richiedi informazioni →</a>
+            </div>
+          </article>
+          <article class="card">
+            <div class="visual" aria-hidden="true">◈</div>
+            <div class="card-content">
+              <h3>Acciaio chirurgico</h3>
+              <p>Gioielli dal look pulito e contemporaneo, disponibili in diversi stili e forme.</p>
+              <a class="textlink" href="#contatti">Richiedi informazioni →</a>
+            </div>
+          </article>
+          <article class="card">
+            <div class="visual" aria-hidden="true">◇</div>
+            <div class="card-content">
+              <h3>Il tuo stile</h3>
+              <p>Design discreti o più audaci per valorizzare il tuo piercing ogni giorno.</p>
+              <a class="textlink" href="#contatti">Ti aiutiamo a scegliere →</a>
+            </div>
+          </article>
+        </div>
+        <p class="notice">
+          Le immagini e i prodotti del catalogo saranno aggiunti quando saranno disponibili le fotografie e i dati reali.
+        </p>
+      </div>
+    </section>
+
+    <section id="materiali">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="eyebrow">Qualità e scelta consapevole</div>
+          <h2>Materiali selezionati</h2>
+          <p>La qualità conta. Prima dell'acquisto, controlla sempre le specifiche del singolo gioiello.</p>
+        </div>
+        <div class="features">
+          <div class="feature">
+            <div class="symbol">✦</div>
+            <h3>Informazioni chiare</h3>
+            <p>Materiale, dimensioni e caratteristiche saranno indicati per ogni prodotto.</p>
+          </div>
+          <div class="feature">
+            <div class="symbol">⌁</div>
+            <h3>La misura giusta</h3>
+            <p>Verifica diametro, lunghezza e spessore prima di scegliere il tuo gioiello.</p>
+          </div>
+          <div class="feature">
+            <div class="symbol">♡</div>
+            <h3>Consigli personalizzati</h3>
+            <p>Contattaci se hai dubbi sul gioiello più adatto al tuo piercing.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contatti">
+      <div class="wrap">
+        <div class="banner">
+          <div class="eyebrow">NAB Piercing</div>
+          <h2>Vuoi trovare il tuo prossimo gioiello?</h2>
+          <p>
+            Contattaci per informazioni su disponibilità, materiali,
+            misure e collezioni.
+          </p>
+          <a class="button" href="index.html">Vai alle prenotazioni</a>
+          <p style="margin-top:16px;font-size:12px">
+            Catalogo e acquisti online in fase di sviluppo.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <span>© <span id="year"></span> NAB Piercing</span>
+      <span>Gioielli in titanio e acciaio chirurgico</span>
+      <a href="index.html">Torna al sito principale</a>
+    </div>
+  </footer>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
