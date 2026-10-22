@@ -341,7 +341,7 @@
                     </div>
                 </div>
             </div>
-            <div class="sub">Versione di prova privata, non ancora pubblicata sugli store.</div>
+            <div class="sub">Nab Piercing 076.679.21.84.</div>
         </section>
         <section id="adminView" class="hidden">
             <div class="card" id="loginCard">
@@ -517,30 +517,7 @@
                 $('slots').querySelectorAll('button').forEach(x => x.classList.toggle('selected', x === b));
             });
         }
-        $('bookBtn').onclick = async () => {clearMsg('customerMessage'); const loc = chosenLocation(), svc = services.find(s => s.id === selectedService), name = $('name').value.trim(), email = $('email').value.trim(), phone = $('phone').value.trim(); if (!loc || !svc || !selectedSlot || !name || !email || !phone) {showMsg('customerMessage', 'Completa tutti i campi e seleziona un orario.', 'err'); return } if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {showMsg('customerMessage', 'Inserisci un indirizzo email valido.', 'err'); return } $('bookBtn').disabled = true; $('bookBtn').textContent = 'Conferma in corso…'; const {data, error} = await db.rpc('create_booking', {p_location_slug: loc.slug, p_service_id: svc.id, p_customer_name: name, p_customer_email: email, p_customer_phone: phone, p_starts_at: selectedSlot.iso}); $('bookBtn').disabled = false; $('bookBtn').textContent = 'Conferma prenotazione'; if (error) {const { error: emailError } = await db.functions.invoke('send-booking-email', {
-  body: {
-    booking_id: data,
-    name: name,
-    email: email,
-    phone: phone,
-    location: loc.name,
-    service: svc.name,
-    starts_at: selectedSlot.iso
-  }
-});
-
-let confirmationMessage = `Prenotazione confermata!\n${loc.name} · ${svc.name}\n${$('date').value} alle ${selectedSlot.time}\nPrezzo: CHF ${Number(svc.price_chf).toFixed(0)}`;
-
-if (emailError) {
-  console.error('Errore invio email:', emailError);
-  confirmationMessage += '\nLa prenotazione è confermata, ma non è stato possibile inviare la conferma email. Contattaci per assistenza.';
-} else {
-  confirmationMessage += '\nRiceverai la conferma via email.';
-}
-
-showMsg('customerMessage', confirmationMessage, 'ok');
-selectedSlot = null;
-await loadSlots()};
+        $('bookBtn').onclick = async () => {clearMsg('customerMessage'); const loc = chosenLocation(), svc = services.find(s => s.id === selectedService), name = $('name').value.trim(), email = $('email').value.trim(), phone = $('phone').value.trim(); if (!loc || !svc || !selectedSlot || !name || !email || !phone) {showMsg('customerMessage', 'Completa tutti i campi e seleziona un orario.', 'err'); return } if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {showMsg('customerMessage', 'Inserisci un indirizzo email valido.', 'err'); return } $('bookBtn').disabled = true; $('bookBtn').textContent = 'Conferma in corso…'; const {data, error} = await db.rpc('create_booking', {p_location_slug: loc.slug, p_service_id: svc.id, p_customer_name: name, p_customer_email: email, p_customer_phone: phone, p_starts_at: selectedSlot.iso}); $('bookBtn').disabled = false; $('bookBtn').textContent = 'Conferma prenotazione'; if (error) {showMsg('customerMessage', 'Prenotazione non confermata: ' + error.message + '. Prova un altro orario.', 'err'); await loadSlots(); return } showMsg('customerMessage', `Prenotazione confermata!\n${loc.name} · ${svc.name}\n${$('date').value} alle ${selectedSlot.time}\nPrezzo: CHF ${Number(svc.price_chf).toFixed(0)}\nL’email automatica non è ancora configurata.`, 'ok'); selectedSlot = null; await loadSlots()};
         $('loginBtn').onclick = async () => {clearMsg('loginMessage'); const {data, error} = await db.auth.signInWithPassword({email: $('adminEmail').value.trim(), password: $('adminPassword').value}); if (error) {showMsg('loginMessage', 'Accesso non riuscito: ' + error.message, 'err'); return } session = data.session; $('loginCard').classList.add('hidden'); $('dashboard').classList.remove('hidden'); await loadBookings(); renderAdminServices()}; $('logoutBtn').onclick = async () => {await db.auth.signOut(); session = null; $('loginCard').classList.remove('hidden'); $('dashboard').classList.add('hidden'); $('adminPassword').value = ''}; $('refreshBookings').onclick = loadBookings;
         async function loadBookings() {
             clearMsg('bookingMessage');
